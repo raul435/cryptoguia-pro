@@ -92,7 +92,7 @@ def enviar_pdf_por_email(email_destino: str) -> bool:
   <div style="background:#161B22; border-radius:8px; padding:20px; margin:20px 0">
     <p style="color:#00C896; font-size:16px; font-weight:bold">📎 La guía va adjunta a este email</p>
     <p style="color:#8B949E; font-size:13px">Si no puedes abrir el adjunto, haz clic aquí:</p>
-    <a href="https://cryptoguia.pro/descarga?email={email_destino}"
+    <a href="https://web-production-b0f25.up.railway.app/descarga?email={email_destino}"
        style="display:inline-block; margin:10px; padding:12px 24px;
               background:#F7931A; color:#0D1117; text-decoration:none;
               border-radius:8px; font-weight:bold">
@@ -241,8 +241,8 @@ def paypal_crear():
                     "description": "Crypto para Principiantes — Guia PDF"
                 }],
                 "application_context": {
-                    "return_url": f"https://cryptoguia.pro/paypal-exito?email={email}",
-                    "cancel_url": "https://cryptoguia.pro/?cancelado=1"
+                    "return_url": f"https://web-production-b0f25.up.railway.app/paypal-exito?email={email}",
+                    "cancel_url": "https://web-production-b0f25.up.railway.app/?cancelado=1"
                 }
             }
         )
