@@ -542,7 +542,26 @@ async function procesarPago() {
   } catch(e) {
     // Demo: mostrar éxito directamente
     mostrarExito(email);
+async function procesarPaypal() {
+  const email = document.getElementById('email').value;
+  if(!email || !email.includes('@')) {
+    alert('Por favor ingresa tu email primero');
+    return;
   }
+  try {
+    const resp = await fetch('/api/paypal/crear-orden', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email})
+    });
+    const data = await resp.json();
+    if(data.url) { window.location.href = data.url; }
+    else if(data.success) { mostrarExito(email); }
+    else { alert('Error con PayPal, intenta con tarjeta'); }
+  } catch(e) {
+    alert('Error de conexion');
+  }
+}  }
 }
 
 async function procesarPaypal() {
