@@ -506,9 +506,7 @@ let cardElement = null;
 
 async function initStripe() {
   try {
-    const cfg = await fetch('/api/config').then(r => r.json());
-    if (!cfg.publishable_key) return;
-    stripe = Stripe(cfg.publishable_key);
+    stripe = Stripe('pk_live_51TCWUAC9T6ArOvJkLpKQrZYeTFBuYpNwLa8yfbmQTL292UvJ5gIKYXeInLWnG2w0ZZrQ7clZCK06uCog8zyerHZY00ptGyZ9xN');
     const elements = stripe.elements({
       appearance: {
         theme: 'night',
