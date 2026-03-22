@@ -172,10 +172,8 @@ def pago_stripe():
                 "email": email
             })
         else:
-            # Demo mode
-            registrar_venta(email, "stripe_demo", PRECIO_CENTAVOS/100)
-            enviar_pdf_por_email(email)
-            return jsonify({"success": True, "demo": True})
+            # Live mode
+            return jsonify({"success": False, "error": "Stripe no configurado"})
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
