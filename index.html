@@ -524,12 +524,19 @@ async function procesarPago() {
   if(!email || !email.includes('@')) {
     alert('Por favor ingresa un email válido'); return;
   }
+  const nombre = document.getElementById('nombre').value;
+  if(!nombre || nombre.trim().length < 3) {
+    alert('Por favor ingresa el nombre en la tarjeta'); return;
+  }
+  const card = document.getElementById('card').value;
+  if(!card || card.replace(/\s/g,'').length < 16) {
+    alert('Por favor ingresa un número de tarjeta válido'); return;
+  }
+
   const btn = document.querySelector('.modal-btn');
   btn.textContent = '⏳ Procesando...';
   btn.disabled = true;
 
-  // ── AQUI CONECTAS TU STRIPE ──
-  // En producción, envía al endpoint /api/pago de tu servidor
   try {
     const resp = await fetch('/api/pago', {
       method: 'POST',
@@ -537,16 +544,24 @@ async function procesarPago() {
       body: JSON.stringify({ email, monto: 999, moneda: 'usd' })
     });
     const data = await resp.json();
-    if(data.success) mostrarExito(email);
-    else throw new Error(data.error);
+    if(data.success) {
+      mostrarExito(email);
+    } else {
+      btn.textContent = '🔒 Pagar $9.99 ahora';
+      btn.disabled = false;
+      alert('Error procesando el pago: ' + (data.error || 'intenta de nuevo'));
+    }
   } catch(e) {
-    // Demo: mostrar éxito directamente
-    mostrarExito(email);
+    btn.textContent = '🔒 Pagar $9.99 ahora';
+    btn.disabled = false;
+    alert('Error de conexión. Por favor intenta de nuevo.');
+  }
+}
+
 async function procesarPaypal() {
   const email = document.getElementById('email').value;
   if(!email || !email.includes('@')) {
-    alert('Por favor ingresa tu email primero');
-    return;
+    alert('Por favor ingresa tu email primero'); return;
   }
   try {
     const resp = await fetch('/api/paypal/crear-orden', {
@@ -555,19 +570,16 @@ async function procesarPaypal() {
       body: JSON.stringify({email})
     });
     const data = await resp.json();
-    if(data.url) { window.location.href = data.url; }
-    else if(data.success) { mostrarExito(email); }
-    else { alert('Error con PayPal, intenta con tarjeta'); }
+    if(data.url) {
+      window.location.href = data.url;
+    } else if(data.success) {
+      mostrarExito(email);
+    } else {
+      alert('Error con PayPal. Por favor intenta con tarjeta.');
+    }
   } catch(e) {
-    alert('Error de conexion');
+    alert('Error de conexión con PayPal.');
   }
-}  }
-}
-
-async function procesarPaypal() {
-  const email = document.getElementById('email').value || 'cliente@email.com';
-  // En producción: window.location.href = '/api/paypal?email=' + email;
-  mostrarExito(email);
 }
 
 function mostrarExito(email) {
