@@ -6,6 +6,7 @@
 <title>Crypto para Principiantes — Guía Completa 2024</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
 <style>
   :root {
     --naranja: #F7931A;
@@ -453,18 +454,9 @@
         <input type="text" id="nombre" placeholder="Juan Pérez">
       </div>
       <div class="form-group">
-        <label>Número de tarjeta</label>
-        <input type="text" id="card" placeholder="4242 4242 4242 4242" maxlength="19" oninput="formatCard(this)">
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Vencimiento</label>
-          <input type="text" placeholder="MM/AA" maxlength="5" oninput="formatExp(this)">
-        </div>
-        <div class="form-group">
-          <label>CVV</label>
-          <input type="text" placeholder="123" maxlength="4">
-        </div>
+        <label>Datos de tarjeta</label>
+        <div id="card-element" style="background:var(--azul-card);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:14px 12px;color:var(--texto)"></div>
+        <div id="card-errors" style="color:var(--rojo);font-size:.82rem;margin-top:6px;min-height:18px"></div>
       </div>
       <button class="modal-btn" onclick="procesarPago()">🔒 Pagar $9.99 ahora</button>
       <div class="divider"><span>o paga con</span></div>
@@ -499,6 +491,7 @@ function toggleFaq(el) {
 // ── MODAL ──
 function abrirModal(tipo) {
   document.getElementById('modal').classList.add('active');
+  if(!cardElement) initStripe();
 }
 function cerrarModal() {
   document.getElementById('modal').classList.remove('active');
@@ -507,18 +500,38 @@ document.getElementById('modal').addEventListener('click', e => {
   if(e.target === document.getElementById('modal')) cerrarModal();
 });
 
-// ── FORMATEO TARJETA ──
-function formatCard(el) {
-  let v = el.value.replace(/\D/g,'').substring(0,16);
-  el.value = v.replace(/(.{4})/g,'$1 ').trim();
-}
-function formatExp(el) {
-  let v = el.value.replace(/\D/g,'');
-  if(v.length >= 2) v = v.substring(0,2)+'/'+v.substring(2,4);
-  el.value = v;
+// ── STRIPE SETUP ──
+let stripe = null;
+let cardElement = null;
+
+async function initStripe() {
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    if (!cfg.publishable_key) return;
+    stripe = Stripe(cfg.publishable_key);
+    const elements = stripe.elements({
+      appearance: {
+        theme: 'night',
+        variables: {
+          colorPrimary: '#F7931A',
+          colorBackground: '#1C2333',
+          colorText: '#E6EDF3',
+          colorDanger: '#FF4B4B',
+          borderRadius: '8px',
+        }
+      }
+    });
+    cardElement = elements.create('card', { hidePostalCode: true });
+    cardElement.mount('#card-element');
+    cardElement.on('change', e => {
+      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+    });
+  } catch(e) {
+    console.error('Stripe init error:', e);
+  }
 }
 
-// ── PAGO (conecta con tu backend) ──
+// ── PAGO ──
 async function procesarPago() {
   const email = document.getElementById('email').value;
   if(!email || !email.includes('@')) {
@@ -528,33 +541,53 @@ async function procesarPago() {
   if(!nombre || nombre.trim().length < 3) {
     alert('Por favor ingresa el nombre en la tarjeta'); return;
   }
-  const card = document.getElementById('card').value;
-  if(!card || card.replace(/\s/g,'').length < 16) {
-    alert('Por favor ingresa un número de tarjeta válido'); return;
+  if(!stripe || !cardElement) {
+    alert('Error de configuración de pagos. Recarga la página.'); return;
   }
 
   const btn = document.querySelector('.modal-btn');
   btn.textContent = '⏳ Procesando...';
   btn.disabled = true;
+  document.getElementById('card-errors').textContent = '';
 
   try {
+    // 1. Crear PaymentIntent en el backend
     const resp = await fetch('/api/pago', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ email, monto: 999, moneda: 'usd' })
+      body: JSON.stringify({ email })
     });
     const data = await resp.json();
-    if(data.success) {
-      mostrarExito(email);
-    } else {
+    if(!data.success || !data.client_secret) {
+      throw new Error(data.error || 'Error al iniciar el pago');
+    }
+
+    // 2. Confirmar el pago con Stripe — aquí se valida la tarjeta de verdad
+    const { paymentIntent, error } = await stripe.confirmCardPayment(data.client_secret, {
+      payment_method: {
+        card: cardElement,
+        billing_details: { name: nombre, email }
+      }
+    });
+
+    if(error) {
+      document.getElementById('card-errors').textContent = error.message;
       btn.textContent = '🔒 Pagar $9.99 ahora';
       btn.disabled = false;
-      alert('Error procesando el pago: ' + (data.error || 'intenta de nuevo'));
+      return;
+    }
+
+    if(paymentIntent.status === 'succeeded') {
+      mostrarExito(email);
+    } else {
+      document.getElementById('card-errors').textContent = 'El pago no se completó. Intenta de nuevo.';
+      btn.textContent = '🔒 Pagar $9.99 ahora';
+      btn.disabled = false;
     }
   } catch(e) {
+    document.getElementById('card-errors').textContent = e.message || 'Error de conexión. Intenta de nuevo.';
     btn.textContent = '🔒 Pagar $9.99 ahora';
     btn.disabled = false;
-    alert('Error de conexión. Por favor intenta de nuevo.');
   }
 }
 
