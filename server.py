@@ -25,7 +25,7 @@ EMAIL_FROM        = os.getenv("EMAIL_FROM", "")
 EMAIL_PASSWORD    = os.getenv("EMAIL_PASSWORD", "")    # App password de Gmail
 EMAIL_SMTP        = os.getenv("EMAIL_SMTP", "smtp.gmail.com")
 PDF_PATH          = os.path.join(os.path.dirname(__file__), "curso_crypto.pdf")
-PRECIO_CENTAVOS   = 50   # $0.50 USD
+PRECIO_CENTAVOS   = 75   # $0.75 USD
 DB_PATH           = os.path.join(os.path.dirname(__file__), "ventas.db")
 
 if STRIPE_SECRET:
