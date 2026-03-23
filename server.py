@@ -124,11 +124,18 @@ def enviar_pdf_por_email(email_destino: str) -> bool:
                              "attachment", filename="Crypto_para_Principiantes.pdf")
             msg.attach(parte)
 
-        # Enviar
-        ctx = ssl.create_default_context()
-        with smtplib.SMTP_SSL(EMAIL_SMTP, 465, context=ctx) as srv:
-            srv.login(EMAIL_FROM, EMAIL_PASSWORD)
-            srv.sendmail(EMAIL_FROM, email_destino, msg.as_string())
+        # Enviar (Outlook usa STARTTLS en 587; Gmail usa SSL en 465)
+        if 'outlook' in EMAIL_SMTP or 'office365' in EMAIL_SMTP:
+            with smtplib.SMTP(EMAIL_SMTP, 587) as srv:
+                srv.ehlo()
+                srv.starttls()
+                srv.login(EMAIL_FROM, EMAIL_PASSWORD)
+                srv.sendmail(EMAIL_FROM, email_destino, msg.as_string())
+        else:
+            ctx = ssl.create_default_context()
+            with smtplib.SMTP_SSL(EMAIL_SMTP, 465, context=ctx) as srv:
+                srv.login(EMAIL_FROM, EMAIL_PASSWORD)
+                srv.sendmail(EMAIL_FROM, email_destino, msg.as_string())
 
         print(f"[EMAIL] ✅ Enviado a {email_destino}")
         return True
